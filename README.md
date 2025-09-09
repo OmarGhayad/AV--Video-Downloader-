@@ -1,7 +1,5 @@
 # AV (Video Downloader)
 
-![App Screenshot](https://github.com/user-attachments/assets/9b8c101a-166f-4a00-980c-96d04e87c55c)
-
 ## 📌 Overview
 
 **AV (Video Downloader)** is a desktop application built with **Python** and **PyQt5**, allowing you to download videos or full playlists from multiple platforms using **yt-dlp**.
@@ -77,7 +75,7 @@ releases/
 Add a screenshot of the application after uploading it to GitHub Issues or inside an `assets` folder.
 
 ```markdown
-![App Screenshot](https://github.com/your-username/your-repo/assets/screenshot.png)
+![App Screenshot](https://github.com/user-attachments/assets/9b8c101a-166f-4a00-980c-96d04e87c55c)
 ```
 
 ## ℹ️ Notes
