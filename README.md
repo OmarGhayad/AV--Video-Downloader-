@@ -1,6 +1,6 @@
 # AV (Video Downloader)
 
-![App Screenshot]("https://github.com/user-attachments/assets/9b8c101a-166f-4a00-980c-96d04e87c55c")
+![App Screenshot](https://github.com/user-attachments/assets/9b8c101a-166f-4a00-980c-96d04e87c55c)
 
 ## 📌 Overview
 
