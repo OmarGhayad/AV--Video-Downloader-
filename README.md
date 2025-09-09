@@ -62,7 +62,7 @@ python3 main.py
 
 ## 📂 Releases
 
-You can find pre-built executables for **Windows** and the Python script for **Linux** inside the [`releases/`](./releases) folder or in the GitHub [Releases section](../../releases).
+You can find pre-built executables for **Windows** and the Python script for **Linux** inside the [`releases/`](./releases) 
 
 ```
 releases/
@@ -70,9 +70,8 @@ releases/
 └── AV_Video_Downloader.py    # Linux (Python script)
 ```
 
-## 📸 Screenshot
 
-Add a screenshot of the application after uploading it to GitHub Issues or inside an `assets` folder.
+## 📸 Screenshot
 
 ```markdown
 ![App Screenshot](https://github.com/user-attachments/assets/9b8c101a-166f-4a00-980c-96d04e87c55c)
