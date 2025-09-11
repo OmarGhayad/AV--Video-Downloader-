@@ -488,11 +488,15 @@ class VideoDownloader(QWidget):
             
             first_video_url = self.playlist_items[0].get('url') or self.playlist_items[0].get('webpage_url')
             with yt_dlp.YoutubeDL({'quiet': True}) as ydl_single:
-                first_video_info = ydl_single.extract_info(first_video_url, download=False)
-            self.update_ui_with_video_info(first_video_info)
-            self.fetched_info = first_video_info
-            self.populate_playlist_view()
-            self.status_label.setText(f"Playlist fetched: {len(self.playlist_items)} videos.")
+                try:
+                    first_video_info = ydl_single.extract_info(first_video_url, download=False)
+                    self.update_ui_with_video_info(first_video_info)
+                    self.fetched_info = first_video_info # Set main info to first video for format selection
+                    self.populate_playlist_view()
+                    self.status_label.setText(f"Playlist fetched: {len(self.playlist_items)} videos.")
+                except Exception as e:
+                    self.on_info_fetch_error(str(e))
+                    return
         else: # Single Video
             if info.get('is_live'):
                 self.status_label.setText("Live streams cannot be downloaded.")
@@ -561,35 +565,59 @@ class VideoDownloader(QWidget):
         s = round(size_bytes / p, 2)
         return f"{s} {size_name[i]}"
 
+    # ====================================================================
+    # START OF MODIFIED FUNCTION
+    # ====================================================================
     def update_file_size(self, *args):
         if not self.fetched_info or 'formats' not in self.fetched_info:
             self.file_info.setText("Estimated File Size: N/A")
             return
 
         total_size = 0
-        formats = self.fetched_info['formats']
-        
+        formats = self.fetched_info.get('formats')
+        if not formats:
+            self.file_info.setText("Estimated File Size: N/A")
+            return
+
+        # --- Audio Only Case ---
         if "Audio" in self.format_combo.currentText():
-            best_audio = max([f for f in formats if f.get('acodec') != 'none' and f.get('vcodec') == 'none'], 
-                             key=lambda x: x.get('abr', 0), default=None)
-            if best_audio:
-                total_size = best_audio.get('filesize') or best_audio.get('filesize_approx')
+            audio_formats = [f for f in formats if f and f.get('acodec') != 'none' and f.get('vcodec') == 'none']
+            if audio_formats:
+                best_audio = max(audio_formats, key=lambda x: x.get('abr', 0) or 0, default=None)
+                if best_audio:
+                    total_size = best_audio.get('filesize') or best_audio.get('filesize_approx') or 0
+        
+        # --- Video + Audio Case ---
         else:
             selected_height_str = self.resolution_combo.currentText()
-            if not selected_height_str: return
-            selected_height = int(selected_height_str.replace('p', ''))
+            if not selected_height_str:
+                self.file_info.setText("Estimated File Size: N/A")
+                return
             
-            matching_videos = [f for f in formats if f.get('height') == selected_height and f.get('vcodec') != 'none']
-            best_video = max(matching_videos, key=lambda x: x.get('tbr', 0), default=None)
-            if best_video:
-                total_size += best_video.get('filesize') or best_video.get('filesize_approx') or 0
+            try:
+                selected_height = int(selected_height_str.replace('p', ''))
+            except (ValueError, TypeError):
+                self.file_info.setText("Estimated File Size: N/A")
+                return
 
-            audio_formats = [f for f in formats if f.get('acodec') != 'none' and f.get('vcodec') == 'none']
+            # Calculate video size
+            matching_videos = [f for f in formats if f and f.get('height') == selected_height and f.get('vcodec') != 'none']
+            if matching_videos:
+                best_video = max(matching_videos, key=lambda x: x.get('tbr', 0) or 0, default=None)
+                if best_video:
+                    total_size += best_video.get('filesize') or best_video.get('filesize_approx') or 0
+
+            # Calculate audio size to be merged
+            audio_formats = [f for f in formats if f and f.get('acodec') != 'none' and f.get('vcodec') == 'none']
             if audio_formats:
-                best_audio = max(audio_formats, key=lambda x: x.get('abr', 0))
-                total_size += best_audio.get('filesize') or best_audio.get('filesize_approx') or 0
+                best_audio = max(audio_formats, key=lambda x: x.get('abr', 0) or 0, default=None)
+                if best_audio:
+                    total_size += best_audio.get('filesize') or best_audio.get('filesize_approx') or 0
 
         self.file_info.setText(f"Estimated File Size: {self.format_file_size(total_size)}")
+    # ====================================================================
+    # END OF MODIFIED FUNCTION
+    # ====================================================================
 
     def toggle_resolution_box(self):
         is_audio = "Audio" in self.format_combo.currentText()
@@ -686,8 +714,16 @@ class VideoDownloader(QWidget):
         self.status_label.setText(f"Downloading: {title}")
         self.reset_progress_bar(determinate=True)
         
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
-            full_video_info = ydl.extract_info(video_to_download.get('webpage_url') or video_to_download.get('url'), download=False)
+        # We may need to re-fetch full info for playlist items
+        full_video_info = video_to_download
+        if 'formats' not in video_to_download:
+             with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                try:
+                    info = ydl.extract_info(video_to_download.get('webpage_url') or video_to_download.get('url'), download=False)
+                    full_video_info.update(info)
+                except Exception as e:
+                    self.on_one_download_finished(False, str(e), video_to_download, is_direct)
+                    return
         
         full_video_info.update(video_to_download)
 
